@@ -34,7 +34,7 @@ export const WordListDetail: React.FC<WordListDetailProps> = ({
         const trimmed = line.trim();
         if (trimmed.length === 0) return null;
         const parts = trimmed.split(/\s+/);
-        const word = parts[0].toUpperCase();
+        const word = parts[0];
         if (!word.split('').every(c => /[a-zA-Z]/.test(c))) return null;
         const clue = parts.length > 1 ? parts.slice(1).join(' ') : '';
         return { word, clue, length: word.length };

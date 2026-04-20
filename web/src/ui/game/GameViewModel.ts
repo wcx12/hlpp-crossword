@@ -35,21 +35,55 @@ const initialState: GameState = {
 export function useGameViewModel() {
   const [state, setState] = useState<GameState>(initialState);
   const generatorRef = useRef<CrosswordGenerator>(new CrosswordGenerator(13, 13));
+  const currentFilePathRef = useRef<string>('/wordlists/python_xword.txt');
 
   // 初始化 - 加载词库并开始新游戏
   useEffect(() => {
-    loadWordList().then(words => {
-      if (words.length > 0) {
-        generatePuzzle(words);
-      } else {
+    loadAndGenerate(currentFilePathRef.current);
+  }, []);
+
+  // 加载词库并生成谜题
+  const loadAndGenerate = (filePath: string, rows?: number, cols?: number) => {
+    setState(prev => ({ ...prev, isLoading: true, errorMessage: null }));
+
+    fetch(filePath)
+      .then(response => response.text())
+      .then(text => {
+        const words = parseWordList(text);
+        if (words.length > 0) {
+          generatePuzzle(words, rows, cols);
+        } else {
+          setState(prev => ({
+            ...prev,
+            isLoading: false,
+            errorMessage: '无法解析词库',
+          }));
+        }
+      })
+      .catch(error => {
         setState(prev => ({
           ...prev,
           isLoading: false,
-          errorMessage: '无法加载词库',
+          errorMessage: '无法加载词库: ' + error.message,
         }));
-      }
-    });
-  }, []);
+      });
+  };
+
+  // 解析词库
+  const parseWordList = (text: string) => {
+    const lines = text.split('\n');
+    return lines
+      .map(line => {
+        const trimmed = line.trim();
+        if (trimmed.length === 0) return null;
+        const parts = trimmed.split(/\s+/);
+        const word = parts[0].toUpperCase();
+        if (!word.split('').every(c => /[a-zA-Z]/.test(c))) return null;
+        const clue = parts.length > 1 ? parts.slice(1).join(' ') : '';
+        return { word, clue, length: word.length };
+      })
+      .filter((entry): entry is WordEntry => entry !== null);
+  };
 
   // 生成谜题
   const generatePuzzle = useCallback((words: WordEntry[], rows?: number, cols?: number) => {
@@ -91,13 +125,30 @@ export function useGameViewModel() {
   }, [state.gridRows, state.gridCols]);
 
   // 开始新游戏
-  const newGame = useCallback((rows?: number, cols?: number) => {
-    loadWordList().then(words => {
-      if (words.length > 0) {
-        generatePuzzle(words, rows, cols);
-      }
-    });
-  }, [generatePuzzle]);
+  const newGame = useCallback((rows?: number, cols?: number, filePath?: string) => {
+    if (filePath) {
+      currentFilePathRef.current = filePath;
+      loadAndGenerate(filePath, rows, cols);
+    } else {
+      loadAndGenerate(currentFilePathRef.current, rows, cols);
+    }
+  }, []);
+
+  // 切换词表
+  const switchWordList = useCallback((filePath: string, rows?: number, cols?: number) => {
+    currentFilePathRef.current = filePath;
+    loadAndGenerate(filePath, rows, cols);
+  }, []);
+
+  // 使用自定义词表生成谜题
+  const setCustomWords = useCallback((entries: { word: string; clue: string }[], rows?: number, cols?: number) => {
+    const words: WordEntry[] = entries.map(e => ({
+      word: e.word,  // 保持原始大小写
+      clue: e.clue,
+      length: e.word.length,
+    }));
+    generatePuzzle(words, rows, cols);
+  }, []);
 
   // 设置网格尺寸
   const setGridSize = useCallback((rows: number, cols: number) => {
@@ -252,6 +303,8 @@ export function useGameViewModel() {
   return {
     state,
     newGame,
+    switchWordList,
+    setCustomWords,
     setGridSize,
     selectCell,
     toggleDirection,

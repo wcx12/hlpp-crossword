@@ -16,6 +16,7 @@ interface GameScreenProps {
   onShowSolution: () => void;
   onHideSolution: () => void;
   onNewGame: (rows?: number, cols?: number) => void;
+  onShowWordList: () => void;
 }
 
 export const GameScreen: React.FC<GameScreenProps> = ({
@@ -28,6 +29,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   onShowSolution,
   onHideSolution,
   onNewGame,
+  onShowWordList,
 }) => {
   const [showSettings, setShowSettings] = useState(false);
   const { isLoading, crossword, errorMessage, isSolved, selectedCell, currentWord, currentWords, currentDirection, showSolution, gridRows, gridCols } = state;
@@ -82,6 +84,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({
       }}>
         <span style={{ fontSize: 18, fontWeight: 'bold' }}>填字游戏</span>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={onShowWordList}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: colors.onPrimary,
+              cursor: 'pointer',
+              fontSize: 14,
+              padding: '4px 8px',
+            }}
+          >
+            词表
+          </button>
           <button
             onClick={() => setShowSettings(true)}
             style={{

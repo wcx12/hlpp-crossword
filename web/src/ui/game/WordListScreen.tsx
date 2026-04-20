@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { WordListInfo } from '../../data/model/WordListInfo';
 import { WordListDetail } from './WordListDetail';
+import { AddWordList } from './AddWordList';
 import { colors } from '../theme/theme';
 
 interface WordListScreenProps {
@@ -8,6 +9,7 @@ interface WordListScreenProps {
   currentWordListId: string | null;
   onSelectWordList: (id: string) => void;
   onBackToGame: () => void;
+  onAddCustomWordList: (entries: { word: string; clue: string }[]) => void;
 }
 
 export const WordListScreen: React.FC<WordListScreenProps> = ({
@@ -15,8 +17,23 @@ export const WordListScreen: React.FC<WordListScreenProps> = ({
   currentWordListId,
   onSelectWordList,
   onBackToGame,
+  onAddCustomWordList,
 }) => {
   const [detailWordList, setDetailWordList] = useState<WordListInfo | null>(null);
+  const [showAddWordList, setShowAddWordList] = useState(false);
+
+  // 如果显示添加词表页面
+  if (showAddWordList) {
+    return (
+      <AddWordList
+        onConfirm={(entries) => {
+          onAddCustomWordList(entries);
+          setShowAddWordList(false);
+        }}
+        onBack={() => setShowAddWordList(false)}
+      />
+    );
+  }
 
   // 如果选中了某个词表，显示详情
   if (detailWordList) {
@@ -69,8 +86,29 @@ export const WordListScreen: React.FC<WordListScreenProps> = ({
         padding: 16,
         overflow: 'auto',
       }}>
-        <div style={{ fontSize: 14, color: colors.onSurfaceVariant, marginBottom: 16 }}>
-          点击词表查看详情
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}>
+          <span style={{ fontSize: 14, color: colors.onSurfaceVariant }}>
+            点击词表查看详情
+          </span>
+          <button
+            onClick={() => setShowAddWordList(true)}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: colors.secondaryContainer,
+              color: colors.onSecondaryContainer,
+              border: 'none',
+              borderRadius: 8,
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            + 添加自定义
+          </button>
         </div>
 
         {wordLists.map(wordList => (
