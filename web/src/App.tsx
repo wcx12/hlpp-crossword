@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { GameScreen } from './ui/game/GameScreen';
 import { WordListScreen } from './ui/game/WordListScreen';
 import { WordSearchScreen } from './ui/game/WordSearchScreen';
+import { GridEditorScreen } from './ui/game/GridEditorScreen';
 import { useGameViewModel } from './ui/game/GameViewModel';
 import { WORD_LISTS, WordListInfo } from './data/model/WordListInfo';
 
-type Screen = 'game' | 'wordList' | 'search';
+type Screen = 'game' | 'wordList' | 'search' | 'editor';
 
 // localStorage keys
 const STORAGE_KEY_CUSTOM_LISTS = 'crossword_custom_word_lists';
@@ -108,6 +109,7 @@ function App() {
     newGame,
     switchWordList,
     setCustomWords,
+    loadCustomPuzzle,
     selectCell,
     toggleDirection,
     setDirection,
@@ -209,6 +211,17 @@ function App() {
     setScreen('game');
   };
 
+  // 打开编辑器
+  const handleOpenEditor = () => {
+    setScreen('editor');
+  };
+
+  // 从编辑器开始游戏
+  const handlePlayFromEditor = (grid: { isBlack: boolean; letter: string }[][], words: any[]) => {
+    loadCustomPuzzle(grid, words);
+    setScreen('game');
+  };
+
   if (screen === 'wordList') {
     return (
       <WordListScreen
@@ -234,6 +247,15 @@ function App() {
     );
   }
 
+  if (screen === 'editor') {
+    return (
+      <GridEditorScreen
+        onBack={handleBackToGame}
+        onPlay={handlePlayFromEditor}
+      />
+    );
+  }
+
   return (
     <GameScreen
       state={state}
@@ -247,6 +269,7 @@ function App() {
       onNewGame={(rows, cols) => newGame(rows ?? state.gridRows, cols ?? state.gridCols)}
       onShowWordList={handleShowWordList}
       onShowSearch={handleShowSearch}
+      onShowEditor={handleOpenEditor}
     />
   );
 }

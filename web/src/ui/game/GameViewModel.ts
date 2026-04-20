@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Crossword, Direction, WordPlacement, isCorrect, getWordsAt } from '../../domain/model/crossword';
+import { Crossword, Direction, WordPlacement, isCorrect, getWordsAt, Cell, Clue } from '../../domain/model/crossword';
 import { WordEntry } from '../../data/model/WordEntry';
 import { CrosswordGenerator } from '../../domain/usecase/CrosswordGenerator';
 import { loadWordList } from '../../data/local/WordListLoader';
@@ -155,6 +155,72 @@ export function useGameViewModel() {
     setState(prev => ({ ...prev, gridRows: rows, gridCols: cols }));
   }, []);
 
+  // 从编辑器加载自定义谜题
+  const loadCustomPuzzle = useCallback((
+    customGrid: { isBlack: boolean; letter: string }[][],
+    customWords: { word: string; clue: string; row: number; col: number; direction: 'across' | 'down' }[]
+  ) => {
+    const rows = customGrid.length;
+    const cols = customGrid[0]?.length || 0;
+
+    // 构建 Cell 网格
+    const grid: Cell[][] = [];
+    for (let r = 0; r < rows; r++) {
+      grid[r] = [];
+      for (let c = 0; c < cols; c++) {
+        grid[r][c] = {
+          row: r,
+          col: c,
+          char: null,  // 用户输入为空
+          solutionChar: customGrid[r][c].letter || null,
+          isBlocked: customGrid[r][c].isBlack,
+        };
+      }
+    }
+
+    // 构建 WordPlacement
+    let wordId = 1;
+    const placements: WordPlacement[] = customWords.map((w, index) => ({
+      id: wordId++,
+      word: w.word,
+      clue: w.clue,
+      row: w.row,
+      col: w.col,
+      direction: w.direction === 'across' ? Direction.HORIZONTAL : Direction.VERTICAL,
+      number: index + 1,
+      displayLabel: String(index + 1),
+    }));
+
+    // 构建 clues
+    const clues: Clue[] = placements.map(p => ({
+      number: p.number,
+      word: p.word,
+      clue: p.clue,
+      direction: p.direction,
+    }));
+
+    const crossword: Crossword = {
+      rows,
+      cols,
+      grid,
+      placements,
+      clues,
+    };
+
+    setState(prev => ({
+      ...prev,
+      crossword,
+      gridRows: rows,
+      gridCols: cols,
+      isLoading: false,
+      isSolved: false,
+      showSolution: false,
+      selectedCell: null,
+      currentWord: null,
+      currentWords: [],
+    }));
+  }, []);
+
   // 选择格子
   const selectCell = useCallback((row: number, col: number) => {
     const { crossword, currentDirection } = state;
@@ -306,6 +372,7 @@ export function useGameViewModel() {
     switchWordList,
     setCustomWords,
     setGridSize,
+    loadCustomPuzzle,
     selectCell,
     toggleDirection,
     setDirection,
