@@ -5,27 +5,51 @@ import { WordEntry } from '../../data/model/WordEntry';
 
 interface WordListDetailProps {
   wordList: WordListInfo;
+  customWords?: { word: string; clue: string }[];  // 自定义词库的词条
   onStartGame: () => void;
   onBack: () => void;
+  onUpdateName?: (newName: string) => void;  // 仅自定义词库可用
 }
 
 export const WordListDetail: React.FC<WordListDetailProps> = ({
   wordList,
+  customWords,
   onStartGame,
   onBack,
+  onUpdateName,
 }) => {
   const [words, setWords] = useState<WordEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(wordList.name);
+
+  const isCustom = !wordList.isSystem;
 
   useEffect(() => {
-    fetch(wordList.filePath)
-      .then(response => response.text())
-      .then(text => {
-        const parsed = parseWordList(text);
-        setWords(parsed);
-        setLoading(false);
-      });
-  }, [wordList.filePath]);
+    // 如果有自定义词库数据，直接使用
+    if (customWords) {
+      setWords(customWords.map(w => ({ word: w.word, clue: w.clue, length: w.word.length })));
+      setLoading(false);
+      return;
+    }
+
+    // 否则从文件加载
+    if (wordList.filePath) {
+      fetch(wordList.filePath)
+        .then(response => response.text())
+        .then(text => {
+          const parsed = parseWordList(text);
+          setWords(parsed);
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
+  }, [wordList.filePath, customWords]);
+
+  useEffect(() => {
+    setEditName(wordList.name);
+  }, [wordList.name]);
 
   const parseWordList = (text: string) => {
     const lines = text.split('\n');
@@ -40,6 +64,13 @@ export const WordListDetail: React.FC<WordListDetailProps> = ({
         return { word, clue, length: word.length };
       })
       .filter((entry): entry is WordEntry => entry !== null);
+  };
+
+  const handleSaveName = () => {
+    if (editName.trim() && onUpdateName) {
+      onUpdateName(editName.trim());
+      setIsEditing(false);
+    }
   };
 
   return (
@@ -69,7 +100,75 @@ export const WordListDetail: React.FC<WordListDetailProps> = ({
         >
           ← 返回
         </button>
-        <span style={{ fontSize: 18, fontWeight: 'bold' }}>{wordList.name}</span>
+        {isEditing && isCustom ? (
+          <input
+            type="text"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+            autoFocus
+            style={{
+              flex: 1,
+              fontSize: 18,
+              fontWeight: 'bold',
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              borderRadius: 4,
+              padding: '4px 8px',
+              color: colors.onPrimary,
+            }}
+          />
+        ) : (
+          <span style={{ flex: 1, fontSize: 18, fontWeight: 'bold' }}>{wordList.name}</span>
+        )}
+        {isCustom && !isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: colors.onPrimary,
+              cursor: 'pointer',
+              fontSize: 14,
+              marginLeft: 8,
+            }}
+          >
+            ✏️
+          </button>
+        )}
+        {isEditing && (
+          <>
+            <button
+              onClick={handleSaveName}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: colors.onPrimary,
+                cursor: 'pointer',
+                fontSize: 14,
+                marginLeft: 8,
+              }}
+            >
+              ✓
+            </button>
+            <button
+              onClick={() => {
+                setEditName(wordList.name);
+                setIsEditing(false);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: colors.onPrimary,
+                cursor: 'pointer',
+                fontSize: 14,
+                marginLeft: 4,
+              }}
+            >
+              ✕
+            </button>
+          </>
+        )}
       </div>
 
       {/* 单词数量提示 */}

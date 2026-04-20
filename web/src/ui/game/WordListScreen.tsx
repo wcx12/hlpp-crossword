@@ -6,21 +6,31 @@ import { colors } from '../theme/theme';
 
 interface WordListScreenProps {
   wordLists: WordListInfo[];
+  customWordData: Record<string, { word: string; clue: string }[]>;
   currentWordListId: string | null;
   onSelectWordList: (id: string) => void;
   onBackToGame: () => void;
   onAddCustomWordList: (entries: { word: string; clue: string }[]) => void;
+  onDeleteCustomWordList: (id: string) => void;
+  onUpdateCustomWordListName: (id: string, newName: string) => void;
 }
 
 export const WordListScreen: React.FC<WordListScreenProps> = ({
   wordLists,
+  customWordData,
   currentWordListId,
   onSelectWordList,
   onBackToGame,
   onAddCustomWordList,
+  onDeleteCustomWordList,
+  onUpdateCustomWordListName,
 }) => {
   const [detailWordList, setDetailWordList] = useState<WordListInfo | null>(null);
   const [showAddWordList, setShowAddWordList] = useState(false);
+
+  // 分离系统词库和自定义词库
+  const systemWordLists = wordLists.filter(w => w.isSystem);
+  const customWordLists = wordLists.filter(w => !w.isSystem);
 
   // 如果显示添加词表页面
   if (showAddWordList) {
@@ -37,14 +47,18 @@ export const WordListScreen: React.FC<WordListScreenProps> = ({
 
   // 如果选中了某个词表，显示详情
   if (detailWordList) {
+    const isCustom = !detailWordList.isSystem;
+    const customWords = isCustom ? customWordData[detailWordList.id] : undefined;
     return (
       <WordListDetail
         wordList={detailWordList}
+        customWords={customWords}
         onStartGame={() => {
           onSelectWordList(detailWordList.id);
           setDetailWordList(null);
         }}
         onBack={() => setDetailWordList(null)}
+        onUpdateName={isCustom ? (newName: string) => onUpdateCustomWordListName(detailWordList.id, newName) : undefined}
       />
     );
   }
@@ -86,15 +100,12 @@ export const WordListScreen: React.FC<WordListScreenProps> = ({
         padding: 16,
         overflow: 'auto',
       }}>
+        {/* 添加自定义按钮 */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          justifyContent: 'flex-end',
           marginBottom: 16,
         }}>
-          <span style={{ fontSize: 14, color: colors.onSurfaceVariant }}>
-            点击词表查看详情
-          </span>
           <button
             onClick={() => setShowAddWordList(true)}
             style={{
@@ -107,62 +118,143 @@ export const WordListScreen: React.FC<WordListScreenProps> = ({
               cursor: 'pointer',
             }}
           >
-            + 添加自定义
+            + 添加自定义词库
           </button>
         </div>
 
-        {wordLists.map(wordList => (
-          <div
-            key={wordList.id}
-            onClick={() => setDetailWordList(wordList)}
-            style={{
-              padding: 16,
-              marginBottom: 12,
-              backgroundColor: currentWordListId === wordList.id
-                ? colors.primaryContainer
-                : colors.surface,
-              border: `1px solid ${colors.outline}`,
-              borderRadius: 12,
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              if (currentWordListId !== wordList.id) {
-                e.currentTarget.style.backgroundColor = colors.surfaceVariant;
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (currentWordListId !== wordList.id) {
-                e.currentTarget.style.backgroundColor = colors.surface;
-              }
-            }}
-          >
-            <div style={{
-              fontSize: 16,
-              fontWeight: 'bold',
-              color: colors.onSurface,
-              marginBottom: 4,
-            }}>
-              {wordList.name}
-            </div>
-            <div style={{
-              fontSize: 12,
-              color: colors.onSurfaceVariant,
-            }}>
-              单词数量: {wordList.wordCount}
-            </div>
-            {currentWordListId === wordList.id && (
-              <div style={{
-                fontSize: 12,
-                color: colors.primary,
-                marginTop: 4,
-              }}>
-                ✓ 当前使用
-              </div>
-            )}
+        {/* 系统词库 */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{
+            fontSize: 14,
+            fontWeight: 'bold',
+            color: colors.primary,
+            marginBottom: 12,
+          }}>
+            系统词库
           </div>
-        ))}
+          {systemWordLists.map(wordList => (
+            <WordListItem
+              key={wordList.id}
+              wordList={wordList}
+              isSelected={currentWordListId === wordList.id}
+              onClick={() => setDetailWordList(wordList)}
+            />
+          ))}
+        </div>
+
+        {/* 自定义词库 */}
+        {customWordLists.length > 0 && (
+          <div>
+            <div style={{
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: colors.secondary,
+              marginBottom: 12,
+            }}>
+              我的词库
+            </div>
+            {customWordLists.map(wordList => (
+              <WordListItem
+                key={wordList.id}
+                wordList={wordList}
+                isSelected={currentWordListId === wordList.id}
+                onClick={() => setDetailWordList(wordList)}
+                onDelete={() => onDeleteCustomWordList(wordList.id)}
+                showDelete
+              />
+            ))}
+          </div>
+        )}
+
+        {wordLists.length === 0 && (
+          <div style={{
+            textAlign: 'center',
+            padding: 40,
+            color: colors.onSurfaceVariant,
+          }}>
+            暂没有可用的词表
+          </div>
+        )}
       </div>
+    </div>
+  );
+};
+
+// 词表项组件
+interface WordListItemProps {
+  wordList: WordListInfo;
+  isSelected: boolean;
+  onClick: () => void;
+  onDelete?: () => void;
+  showDelete?: boolean;
+}
+
+const WordListItem: React.FC<WordListItemProps> = ({
+  wordList,
+  isSelected,
+  onClick,
+  onDelete,
+  showDelete,
+}) => {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: 16,
+        marginBottom: 12,
+        backgroundColor: isSelected ? colors.primaryContainer : colors.surface,
+        border: `1px solid ${colors.outline}`,
+        borderRadius: 12,
+        cursor: 'pointer',
+        transition: 'background-color 0.2s',
+      }}
+      onClick={onClick}
+    >
+      <div style={{ flex: 1 }}>
+        <div style={{
+          fontSize: 16,
+          fontWeight: 'bold',
+          color: colors.onSurface,
+          marginBottom: 4,
+        }}>
+          {wordList.name}
+        </div>
+        <div style={{
+          fontSize: 12,
+          color: colors.onSurfaceVariant,
+        }}>
+          单词数量: {wordList.wordCount}
+        </div>
+        {isSelected && (
+          <div style={{
+            fontSize: 12,
+            color: colors.primary,
+            marginTop: 4,
+          }}>
+            ✓ 当前使用
+          </div>
+        )}
+      </div>
+      {showDelete && onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          style={{
+            padding: '6px 12px',
+            backgroundColor: colors.error,
+            color: colors.onError,
+            border: 'none',
+            borderRadius: 6,
+            fontSize: 12,
+            cursor: 'pointer',
+          }}
+        >
+          删除
+        </button>
+      )}
     </div>
   );
 };
