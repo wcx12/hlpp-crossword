@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GameState } from './GameViewModel';
 import { CrosswordGrid } from './CrosswordGrid';
 import { Keyboard } from './Keyboard';
 import { HintBar } from './HintBar';
+import { SettingsDialog } from './SettingsDialog';
 import { colors } from '../theme/theme';
 
 interface GameScreenProps {
@@ -14,7 +15,7 @@ interface GameScreenProps {
   onDelete: () => void;
   onShowSolution: () => void;
   onHideSolution: () => void;
-  onNewGame: () => void;
+  onNewGame: (rows?: number, cols?: number) => void;
 }
 
 export const GameScreen: React.FC<GameScreenProps> = ({
@@ -28,7 +29,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   onHideSolution,
   onNewGame,
 }) => {
-  const { isLoading, crossword, errorMessage, isSolved, selectedCell, currentWord, currentWords, currentDirection, showSolution } = state;
+  const [showSettings, setShowSettings] = useState(false);
+  const { isLoading, crossword, errorMessage, isSolved, selectedCell, currentWord, currentWords, currentDirection, showSolution, gridRows, gridCols } = state;
 
   // 加载中
   if (isLoading) {
@@ -46,7 +48,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         <div style={{ color: colors.error, textAlign: 'center', marginBottom: 16 }}>
           {errorMessage}
         </div>
-        <button onClick={onNewGame} style={buttonStyle}>重试</button>
+        <button onClick={() => onNewGame()} style={buttonStyle}>重试</button>
       </div>
     );
   }
@@ -56,7 +58,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
     return (
       <div style={centerStyle}>
         <div style={{ marginBottom: 16 }}>点击下方按钮开始新游戏</div>
-        <button onClick={onNewGame} style={buttonStyle}>新游戏</button>
+        <button onClick={() => onNewGame()} style={buttonStyle}>新游戏</button>
       </div>
     );
   }
@@ -79,18 +81,44 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         color: colors.onPrimary,
       }}>
         <span style={{ fontSize: 18, fontWeight: 'bold' }}>填字游戏</span>
-        <button
-          onClick={onNewGame}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: colors.onPrimary,
-            cursor: 'pointer',
-            fontSize: 14,
-          }}
-        >
-          新游戏
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setShowSettings(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: colors.onPrimary,
+              cursor: 'pointer',
+              fontSize: 14,
+              padding: '4px 8px',
+            }}
+          >
+            设置
+          </button>
+          <button
+            onClick={() => onNewGame()}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: colors.onPrimary,
+              cursor: 'pointer',
+              fontSize: 14,
+            }}
+          >
+            新游戏
+          </button>
+        </div>
+      </div>
+
+      {/* 当前尺寸提示 */}
+      <div style={{
+        padding: '4px 16px',
+        backgroundColor: colors.surfaceVariant,
+        fontSize: 12,
+        color: colors.onSurfaceVariant,
+        textAlign: 'center',
+      }}>
+        网格尺寸: {gridRows} × {gridCols}
       </div>
 
       {/* 提示栏 */}
@@ -128,6 +156,19 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         onLetterClick={onLetterInput}
         onDeleteClick={onDelete}
       />
+
+      {/* 设置弹窗 */}
+      {showSettings && (
+        <SettingsDialog
+          rows={gridRows}
+          cols={gridCols}
+          onConfirm={(rows, cols) => {
+            setShowSettings(false);
+            onNewGame(rows, cols);
+          }}
+          onCancel={() => setShowSettings(false)}
+        />
+      )}
 
       {/* 完成弹窗 */}
       {isSolved && (

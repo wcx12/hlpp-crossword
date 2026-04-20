@@ -14,6 +14,8 @@ export interface GameState {
   showSolution: boolean;
   isSolved: boolean;
   errorMessage: string | null;
+  gridRows: number;
+  gridCols: number;
 }
 
 const initialState: GameState = {
@@ -26,6 +28,8 @@ const initialState: GameState = {
   showSolution: false,
   isSolved: false,
   errorMessage: null,
+  gridRows: 13,
+  gridCols: 13,
 };
 
 export function useGameViewModel() {
@@ -48,13 +52,20 @@ export function useGameViewModel() {
   }, []);
 
   // 生成谜题
-  const generatePuzzle = useCallback((words: WordEntry[]) => {
+  const generatePuzzle = useCallback((words: WordEntry[], rows?: number, cols?: number) => {
     setState(prev => ({ ...prev, isLoading: true, errorMessage: null }));
 
     // 使用 setTimeout 让 UI 有机会更新
     setTimeout(() => {
       const generator = generatorRef.current;
-      const crossword = generator.generate(words, 3);
+      const actualRows = rows ?? state.gridRows;
+      const actualCols = cols ?? state.gridCols;
+
+      // 使用新的尺寸重新创建生成器
+      const newGenerator = new CrosswordGenerator(actualRows, actualCols);
+      generatorRef.current = newGenerator;
+
+      const crossword = newGenerator.generate(words, 3);
 
       if (crossword) {
         setState(prev => ({
@@ -66,6 +77,8 @@ export function useGameViewModel() {
           selectedCell: null,
           currentWord: null,
           currentWords: [],
+          gridRows: actualRows,
+          gridCols: actualCols,
         }));
       } else {
         setState(prev => ({
@@ -75,16 +88,21 @@ export function useGameViewModel() {
         }));
       }
     }, 50);
-  }, []);
+  }, [state.gridRows, state.gridCols]);
 
   // 开始新游戏
-  const newGame = useCallback(() => {
+  const newGame = useCallback((rows?: number, cols?: number) => {
     loadWordList().then(words => {
       if (words.length > 0) {
-        generatePuzzle(words);
+        generatePuzzle(words, rows, cols);
       }
     });
   }, [generatePuzzle]);
+
+  // 设置网格尺寸
+  const setGridSize = useCallback((rows: number, cols: number) => {
+    setState(prev => ({ ...prev, gridRows: rows, gridCols: cols }));
+  }, []);
 
   // 选择格子
   const selectCell = useCallback((row: number, col: number) => {
@@ -234,6 +252,7 @@ export function useGameViewModel() {
   return {
     state,
     newGame,
+    setGridSize,
     selectCell,
     toggleDirection,
     setDirection,
