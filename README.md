@@ -1,64 +1,49 @@
-# Crossword Android App
+# HLPP Crossword
 
-A crossword puzzle game app built with Kotlin and Jetpack Compose.
+A multi-platform crossword puzzle game built with modern technologies.
 
-## Inspired by
+## Platforms
 
-This project is a Kotlin/Android port of [genxword](https://github.com/riverrun/genxword), a Python crossword generator originally created by [Peter H. Miller](https://github.com/riverrun).
+| Platform | Tech Stack | Location |
+|----------|------------|----------|
+| Android | Kotlin, Jetpack Compose, Material3 | `android/` |
+| Web | React 18, TypeScript, Vite | `web/` |
 
 ## Features
 
-- **Crossword Generation**: Automatically generates crossword puzzles using a greedy algorithm
-- **Interactive Grid**: Tap cells to select, input letters via on-screen keyboard
-- **Direction Toggle**: Switch between horizontal and vertical word directions
-- **Hint System**: Shows current word and clue in the hint bar
-- **Solution View**: Toggle to reveal or hide the solution
-- **Custom Word Bank**: Support for importing custom word lists
+- **Crossword Generation**: Greedy algorithm generates puzzles from word lists
+- **Interactive Grid**: Tap/click cells, input via on-screen keyboard
+- **Direction Toggle**: Switch between horizontal and vertical
+- **Multiple Word Lists**: Built-in and custom word list support
+- **Word Search**: Search across word lists
+- **Persistent Storage**: Web version uses localStorage; Android uses internal storage
 
-## Tech Stack
+## Architecture
 
-- **Language**: Kotlin
-- **UI Framework**: Jetpack Compose with Material Design 3
-- **Architecture**: Clean Architecture + MVVM
-- **Min SDK**: 23 (Android 6.0)
-- **Target SDK**: 36
-
-## Project Structure
+Both platforms follow Clean Architecture:
 
 ```
-app/src/main/java/com/crossword/app/
-├── MainActivity.kt              # Entry point
-├── data/
-│   ├── local/                    # Word loading & parsing
-│   └── model/                    # Data models
-├── domain/
-│   ├── model/                    # Domain models (Crossword, Cell, Clue)
-│   ├── repository/              # Repository interfaces
-│   └── usecase/                 # CrosswordGenerator
-└── ui/
-    ├── game/                     # Game screen, ViewModel, state
-    ├── theme/                    # Material3 theme
-    └── wordbank/                 # Word bank management
+├── domain/           # Business logic (CrosswordGenerator)
+├── data/             # Data layer (repositories, models)
+└── ui/               # Presentation layer
 ```
-
-## Algorithm
-
-The crossword generator uses a greedy algorithm:
-
-1. Place the first word (longest) at a random position
-2. For remaining words, find intersection points using `letCoords` mapping
-3. Score each possible position based on:
-   - Base score of 1
-   - +1 for each intersection with existing letters
-4. Place words at the highest-scoring positions within time limit
-5. Keep the best solution (most words placed)
 
 ## Building
 
+**Android:**
 ```bash
+cd android
 ./gradlew assembleDebug
 ```
 
-## Screenshots
+**Web:**
+```bash
+cd web
+npm install
+npm run dev      # Development
+npm run build    # Production build
+```
 
-Screenshots are available in the parent directory.
+## Inspired by
+
+This project is a Kotlin/Android and React/Web port of [genxword](https://github.com/riverrun/genxword) by Peter H. Miller.
